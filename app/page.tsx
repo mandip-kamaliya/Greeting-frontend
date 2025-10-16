@@ -1,20 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 // Import necessary React hooks and components
-import { useState } from 'react';
-import { ConnectButton } from '@coinbase/onchainkit/wallet';
+import { useState , useEffect } from 'react';
+import { ConnectWallet } from '@coinbase/onchainkit/wallet';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 
-// --- 1. IMPORT YOUR ABI ---
-// Make sure this path is correct. If your 'abis' folder is in the root,
-// and this file is in 'app/page.tsx', this path should be correct.
+
 import greetingAbi from '../abis/greeting.json';
 
 export default function Home() {
-  // --- 2. PASTE YOUR CONTRACT ADDRESS ---
-  // This is the most common place for an error.
-  // Replace this with the real address you got from Foundry.
-  const contractAddress = '0xYourContractAddressHere'; // ⚠️ <--- PASTE YOUR ADDRESS HERE
+  
+  const contractAddress = '0x45ec0E1EbBC9Ed306a255A68218b31c7273BAcCe'; // ⚠️ <--- PASTE YOUR ADDRESS HERE
 
   // --- Wagmi hook to get connected account info ---
   const { address, isConnected } = useAccount();
@@ -32,20 +29,19 @@ export default function Home() {
   const { data: currentGreeting, isLoading: isGreetingLoading, refetch } = useReadContract({
     ...contractConfig,
     functionName: 'greet',
-    // We only want this hook to run if the wallet is connected
+    
     query: { enabled: isConnected }, 
   });
 
-  // --- HOOKS TO WRITE TO THE CONTRACT ---
+  
   const { data: hash, writeContract, isPending: isSettingGreeting } = useWriteContract();
 
-  // --- HOOK TO WAIT FOR TRANSACTION TO BE MINED ---
-  // This hook gives us feedback after the transaction is sent
+  
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
       hash,
   });
 
-  // --- FUNCTION TO HANDLE THE BUTTON CLICK ---
+ 
   const handleSetGreeting = async () => {
     if (!newGreeting) return; // Prevent empty submissions
     writeContract({
@@ -55,22 +51,22 @@ export default function Home() {
     });
   };
 
-  // --- This effect will refetch the greeting after a successful transaction ---
-  useState(() => {
-    if (isConfirmed) {
-      refetch();
-    }
-  }, [isConfirmed, refetch]);
+  
+useEffect(() => {
+  if (isConfirmed) {
+    refetch();
+  }
+}, [isConfirmed, refetch]);
 
 
-  // --- JSX TO RENDER THE PAGE ---
+ 
   return (
     <main style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: '600px', margin: 'auto' }}>
       <h1>Greeting dApp on Base Sepolia</h1>
       <p>A simple frontend to read and write to a smart contract.</p>
       
       <div style={{ margin: '1rem 0' }}>
-        <ConnectButton />
+        <ConnectWallet />
       </div>
 
       {/* Show contract UI only if wallet is connected */}
