@@ -1,62 +1,76 @@
-"use client";
-import Image from "next/image";
-import styles from "./page.module.css";
-import { Wallet } from "@coinbase/onchainkit/wallet";
+'use client';
+
+import { useState } from 'react';
+import { ConnectButton } from '@coinbase/onchainkit/wallet';
+import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import greetingAbi from '../abis/greeting.json'; // Import the ABI
 
 export default function Home() {
+  // --- Wallet Connection State ---
+  const { address, isConnected } = useAccount();
+
+  // --- State for the new greeting input ---
+  const [newGreeting, setNewGreeting] = useState('');
+
+  // --- Contract Configuration ---
+  const contractAddress = '0xYourContractAddressHere'; // ⚠️ PASTE YOUR DEPLOYED CONTRACT ADDRESS HERE
+  const contractConfig = {
+    address: contractAddress as `0x${string}`,
+    abi: greetingAbi,
+  };
+
+  // --- Wagmi Hook for Reading the 'greet' function ---
+  const { data: currentGreeting, isLoading: isGreetingLoading } = useReadContract({
+    ...contractConfig,
+    functionName: 'greet',
+  });
+
+  // --- Wagmi Hook for Writing to the 'setGreeting' function ---
+  const { writeContract, isPending: isSettingGreeting } = useWriteContract();
+
+  // --- Function to handle setting the new greeting ---
+  const handleSetGreeting = () => {
+    if (!newGreeting) return; // Don't do anything if input is empty
+    writeContract({
+      ...contractConfig,
+      functionName: 'setGreeting',
+      args: [newGreeting], // Pass the new greeting as an argument
+    });
+  };
+
   return (
-    <div className={styles.container}>
-      <header className={styles.headerWrapper}>
-        <Wallet />
-      </header>
+    <main style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: '600px', margin: 'auto' }}>
+      <h1>Greeting dApp on Base Sepolia</h1>
+      <ConnectButton />
 
-      <div className={styles.content}>
-        <Image
-          priority
-          src="/sphere.svg"
-          alt="Sphere"
-          width={200}
-          height={200}
-        />
-        <h1 className={styles.title}>OnchainKit</h1>
+      {/* Only show contract interaction UI if wallet is connected */}
+      {isConnected && (
+        <div style={{ marginTop: '1.5rem', border: '1px solid #ddd', padding: '1rem', borderRadius: '8px' }}>
+          <h2>Contract Interaction</h2>
+          <p>
+            <strong>Contract Address:</strong> {contractAddress}
+          </p>
+          
+          <div style={{ margin: '1rem 0' }}>
+            <strong>Current Greeting:</strong>{' '}
+            <span>{isGreetingLoading ? 'Loading...' : String(currentGreeting)}</span>
+          </div>
 
-        <p>
-          Get started by editing <code>app/page.tsx</code>
-        </p>
+          <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '1rem 0' }} />
 
-        <h2 className={styles.componentsTitle}>Explore Components</h2>
-
-        <ul className={styles.components}>
-          {[
-            {
-              name: "Transaction",
-              url: "https://docs.base.org/onchainkit/transaction/transaction",
-            },
-            {
-              name: "Swap",
-              url: "https://docs.base.org/onchainkit/swap/swap",
-            },
-            {
-              name: "Checkout",
-              url: "https://docs.base.org/onchainkit/checkout/checkout",
-            },
-            {
-              name: "Wallet",
-              url: "https://docs.base.org/onchainkit/wallet/wallet",
-            },
-            {
-              name: "Identity",
-              url: "https://docs.base.org/onchainkit/identity/identity",
-            },
-          ].map((component) => (
-            <li key={component.name}>
-              <a target="_blank" rel="noreferrer" href={component.url}>
-                {component.name}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+          <h3>Set a New Greeting</h3>
+          <input
+            type="text"
+            placeholder="Enter new greeting"
+            value={newGreeting}
+            onChange={(e) => setNewGreeting(e.target.value)}
+            style={{ padding: '8px', marginRight: '8px', width: '70%' }}
+          />
+          <button onClick={handleSetGreeting} disabled={isSettingGreeting}>
+            {isSettingGreeting ? 'Saving...' : 'Save Greeting'}
+          </button>
+        </div>
+      )}
+    </main>
   );
 }
